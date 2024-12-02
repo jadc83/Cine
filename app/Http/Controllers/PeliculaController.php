@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StorePeliculaRequest;
-use App\Http\Requests\UpdatePeliculaRequest;
 use App\Models\Pelicula;
 use Illuminate\Http\Request;
 
@@ -31,13 +29,13 @@ class PeliculaController extends Controller
      */
     public function store(Request $request)
     {
-        // Validación de los datos de entrada
         $validated = $request->validate([
             'titulo' => 'required|string|max:255|unique:peliculas,titulo',
         ]);
         $pelicula = new Pelicula();
         $pelicula->titulo = $validated['titulo'];
         $pelicula->save();
+        session()->flash('exito', 'Pelicula creada correctamente.');
         return redirect()->route('peliculas.index');
 }
 
@@ -47,7 +45,7 @@ class PeliculaController extends Controller
      */
     public function show(Pelicula $pelicula)
     {
-        //
+        return view('peliculas.show', ['pelicula' => $pelicula]);
     }
 
     /**
@@ -55,15 +53,23 @@ class PeliculaController extends Controller
      */
     public function edit(Pelicula $pelicula)
     {
-        //
+        return view('peliculas.edit', ['pelicula' => $pelicula]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdatePeliculaRequest $request, Pelicula $pelicula)
+    public function update(Request $request, Pelicula $pelicula)
     {
-        //
+        $validated = $request->validate([
+            'titulo' => 'required|string|max:255',
+        ]);
+
+        $pelicula->titulo = $validated['titulo'];
+        $pelicula->save();
+        session()->flash('exito', 'Pelicula actualizada correctamente.');
+
+        return redirect()->route('peliculas.index');
     }
 
     /**
@@ -71,6 +77,14 @@ class PeliculaController extends Controller
      */
     public function destroy(Pelicula $pelicula)
     {
-        if
+        foreach ($pelicula->proyecciones as $proyeccion) {
+            if ($proyeccion->entradas->count() > 0) {
+                session()->flash('error', 'No se puede eliminar la película porque ya se vendieron entradas.');
+                return redirect()->route('peliculas.index');
+            }
+        }
+        $pelicula->proyecciones()->delete();
+        $pelicula->delete();
+        return redirect()->route('peliculas.index');
     }
 }
